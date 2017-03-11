@@ -5,8 +5,9 @@ AR=arm-none-eabi-ar
 
 vpath %.c STM32F30x_StdPeriph_Driver/src
 
-CFLAGS  = -g -O2 -Wall -DSTM32F303xC
-CFLAGS += -mlittle-endian -mthumb -mcpu=cortex-m4 -march=armv7e-m
+# -mlittle-endian
+CFLAGS  = -ggdb3 -O0 -Wall -DSTM32F303xC
+CFLAGS += -mthumb -mcpu=cortex-m4 -march=armv7e-m
 CFLAGS += -mfpu=fpv4-sp-d16 -mfloat-abi=hard
 CFLAGS += -ffreestanding -nostdlib
 CFLAGS += -include stm32f30x_conf.h

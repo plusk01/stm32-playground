@@ -10,22 +10,22 @@ int main()
       GPIO_InitTypeDef gpio;
  
       // Blue LED is connected to port E, pin 8 (AHB bus)
-      RCC_AHBPeriphClockCmd( RCC_AHBPeriph_GPIOE, ENABLE );
+      RCC_AHBPeriphClockCmd( RCC_AHBPeriph_GPIOB, ENABLE );
  
       // Configure port E (LED)
       GPIO_StructInit( &gpio );
       gpio.GPIO_Mode = GPIO_Mode_OUT;
       gpio.GPIO_Pin  = LED;
-      GPIO_Init( GPIOE, &gpio );
+      GPIO_Init( GPIOB, &gpio );
  
       // Blinking LEDS
       while(1)
       {
               // On
-              GPIO_SetBits( GPIOE, LED );
+              GPIO_SetBits( GPIOB, LED );
               for( i = 0; i < 500000; i++ );
               // All off
-              GPIO_ResetBits( GPIOE, LED );
+              GPIO_ResetBits( GPIOB, LED );
               for( i = 0; i < 500000; i++ );
       }
 }

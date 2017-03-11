@@ -13,9 +13,6 @@ LIB_DIR=$(BOARD_DIR)/lib
 # Location of the linker scripts
 LDSCRIPT_INC=$(BOARD_DIR)
 
-# location of OpenOCD Board .cfg files (only used with 'make program')
-OPENOCD_BOARD_DIR=/home/matt/bin/openocd/share/openocd/scripts/board
-
 # Configuration (cfg) file containing programming directives for OpenOCD
 OPENOCD_PROC_FILE=$(BOARD_DIR)/stm32f3-openocd.cfg
 
@@ -29,8 +26,9 @@ OBJCOPY = arm-none-eabi-objcopy
 OBJDUMP = arm-none-eabi-objdump
 SIZE 	= arm-none-eabi-size
 
-CFLAGS  = -Wall -Wno-switch -g -std=c99 -Os  
-CFLAGS += -mlittle-endian -mcpu=cortex-m4  -march=armv7e-m -mthumb 
+# -mlittle-endian
+CFLAGS  = -Wall -Wno-switch -std=c99 -O0 -ggdb3
+CFLAGS += -mcpu=cortex-m4  -march=armv7e-m -mthumb 
 CFLAGS += -mfpu=fpv4-sp-d16 -mfloat-abi=hard
 CFLAGS += -ffunction-sections -fdata-sections
 
@@ -88,7 +86,7 @@ $(PROJ_NAME).elf: $(OBJS)
 	$(SIZE) $(PROJ_NAME).elf
 
 program: all
-	openocd -f $(OPENOCD_BOARD_DIR)/stm32f3discovery.cfg -f $(OPENOCD_PROC_FILE) -c "stm_flash `pwd`/$(PROJ_NAME).bin" -c shutdown
+	openocd -f ../openocd.cfg -f $(OPENOCD_PROC_FILE) -c "stm_flash `pwd`/$(PROJ_NAME).bin"
 
 debug: program
 	$(GDB) -x extra/gdb_cmds $(PROJ_NAME).elf
