@@ -7,6 +7,7 @@ vpath %.c STM32F30x_StdPeriph_Driver/src
 
 CFLAGS  = -g -O2 -Wall -DSTM32F303xC
 CFLAGS += -mlittle-endian -mthumb -mcpu=cortex-m4 -march=armv7e-m
+CFLAGS += -mfpu=fpv4-sp-d16 -mfloat-abi=hard
 CFLAGS += -ffreestanding -nostdlib
 CFLAGS += -include stm32f30x_conf.h
 CFLAGS += -ICMSIS/CM1/CoreSupport
@@ -24,7 +25,7 @@ SRCS = stm32f30x_adc.c stm32f30x_can.c stm32f30x_comp.c stm32f30x_crc.c \
 OBJS = $(addprefix objs/,$(SRCS:.c=.o))
 DEPS = $(addprefix deps/,$(SRCS:.c=.d))
 
-.PHONY: all clean dirs
+.PHONY: all clean
 
 all: libstm32f30x.a
 
@@ -32,6 +33,7 @@ all: libstm32f30x.a
 
 dirs:
 	mkdir -p deps objs
+	touch dirs
 
 objs/%.o : %.c dirs
 	$(CC) $(CFLAGS) -c -o $@ $< -MMD -MF deps/$(*F).d
@@ -40,4 +42,4 @@ libstm32f30x.a: $(OBJS)
 	$(AR) -r $@ $(OBJS)
 
 clean:
-	rm -f deps objs $(OBJS) $(DEPS) libstm32f0.a
+	rm -f dirs deps objs $(OBJS) $(DEPS) libstm32f0.a

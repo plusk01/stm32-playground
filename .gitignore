@@ -4,3 +4,9 @@
 *.d
 *.i
 *.ii
+*.bin
+*.elf
+*.map
+*.hex
+*.lst
+dirs
