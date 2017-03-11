@@ -10,3 +10,4 @@
 *.hex
 *.lst
 dirs
+obj

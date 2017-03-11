@@ -1,106 +1,272 @@
-# put your *.c source files here, make should handle the rest!
-SRCS = blinky.c system_stm32f30x.c 
+# Change this to whatever project name you want
+PROJECT = blinky
 
-# all the files will be generated with this name (main.elf, main.bin, main.hex, etc)
-PROJ_NAME=blinky
+# Add your sources that you want compiled here
+PROJECT_SRCS = blinky.c
 
-# Root location of all board files
-BOARD_DIR=..
+###############################################################################
 
-# Location of the Libraries folder from the STM32F0xx Standard Peripheral Library
-LIB_DIR=$(BOARD_DIR)/lib
+BOARD_DIR = ..
 
-# Location of the linker scripts
-LDSCRIPT_INC=$(BOARD_DIR)
+# Debugger optons, must be empty or GDB
+DEBUG ?= GDB
 
-# Configuration (cfg) file containing programming directives for OpenOCD
-OPENOCD_PROC_FILE=$(BOARD_DIR)/stm32f3-openocd.cfg
+# Serial port/Device for flashing
+SERIAL_DEVICE	?= /dev/ttyACM0
 
-# that's it, no need to change anything below this line!
+# Flash size (KB).  Some low-end chips actually have more flash than advertised, use this to override.
+FLASH_SIZE ?= 256
 
-###################################################
+# Working directories
+ROOT		 = $(dir $(lastword $(MAKEFILE_LIST)))
+SRC_DIR		 = $(ROOT)
+OBJECT_DIR	 = $(ROOT)/obj
+BIN_DIR		 = $(ROOT)/obj
+LIB_DIR	 	 = $(BOARD_DIR)/lib
+CMSIS_DIR	 = $(LIB_DIR)/CMSIS
+INCLUDE_DIRS = $(LIB_DIR) $(BOARD_DIR) $(SRC_DIR)
+LINKER_DIR	 = $(BOARD_DIR)
 
-CC		= arm-none-eabi-gcc
-GDB 	= arm-none-eabi-gdb
-OBJCOPY = arm-none-eabi-objcopy
-OBJDUMP = arm-none-eabi-objdump
-SIZE 	= arm-none-eabi-size
+# User Sources
+CSOURCES := $(shell find $(SRC_DIR) -name '*.c')
 
-# -mlittle-endian
-CFLAGS  = -Wall -Wno-switch -std=c99 -O0 -ggdb3
-CFLAGS += -mcpu=cortex-m4  -march=armv7e-m -mthumb 
-CFLAGS += -mfpu=fpv4-sp-d16 -mfloat-abi=hard
-CFLAGS += -ffunction-sections -fdata-sections
+# USB Device Driver Sources
+USBFS_DIR	  = $(LIB_DIR)/STM32_USB-FS-Device_Driver
+USBFS_SRC = $(notdir $(wildcard $(USBFS_DIR)/src/*.c))
 
-LDFLAGS += -Wl,--gc-sections -Wl,-Map=$(PROJ_NAME).map
+# Standard Peripheral Driver Library Sources
+STDPERIPH_DIR	= $(LIB_DIR)/STM32F30x_StdPeriph_Driver
+STDPERIPH_SRC   = $(notdir $(wildcard $(STDPERIPH_DIR)/src/*.c))
+# EXCLUDES	    = stm32f30x_crc.c stm32f30x_can.c
+EXCLUDES	    = 
+STDPERIPH_SRC  := $(filter-out ${EXCLUDES}, $(STDPERIPH_SRC))
 
-###################################################
+# All device specific sources
+DEVICE_STDPERIPH_SRC := $(STDPERIPH_SRC) $(USBFS_SRC)
 
-# Help look for the CMSIS/StdPeriph_Driver archive/lib
-vpath %.a $(LIB_DIR)
 
-# Help look for the system_stm32f30x.c
-vpath %.c $(BOARD_DIR)
+# Search path for sources
+VPATH		:= $(BOARD_DIR):$(SRC_DIR)
+VPATH		:= $(VPATH):$(CMSIS_DIR)/CM1/CoreSupport:$(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F30x
+CMSIS_SRC	 = $(notdir $(wildcard $(CMSIS_DIR)/CM1/CoreSupport/*.c \
+			   $(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F30x/*.c))
 
-CFLAGS += -DSTM32F303xC
-CFLAGS += -I $(LIB_DIR)/CMSIS/CM1/DeviceSupport/ST/STM32F30x
-CFLAGS += -I $(LIB_DIR)/CMSIS/CM1/CoreSupport
-CFLAGS += -I $(LIB_DIR)/STM32F30x_StdPeriph_Driver/inc
-CFLAGS += -I $(LIB_DIR)/STM32_USB-FS-Device_Driver/inc
-CFLAGS += -include $(LIB_DIR)/stm32f30x_conf.h
+INCLUDE_DIRS := $(INCLUDE_DIRS) \
+		   $(STDPERIPH_DIR)/inc \
+		   $(USBFS_DIR)/inc \
+		   $(CMSIS_DIR)/CM1/CoreSupport \
+		   $(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F30x
 
-# add startup file to build
-STARTUP = $(BOARD_DIR)/startup_stm32f30x.S
+# # VCP support
+# VCP_DIR = $(BOARD_DIR)/vcp
 
-OBJS = $(addprefix objs/,$(SRCS:.c=.o))
-DEPS = $(addprefix deps/,$(SRCS:.c=.d))
+# INCLUDE_DIRS := $(INCLUDE_DIRS) \
+# 		$(USBFS_DIR)/inc \
+# 		$(VCP_DIR) 
 
-###################################################
+VPATH := $(VPATH):$(USBFS_DIR)/src
 
-.PHONY: all lib proj program debug clean reallyclean
 
-all: lib proj
+LD_SCRIPT	 = $(LINKER_DIR)/stm32_flash_f303_$(FLASH_SIZE)k.ld
 
--include $(DEPS)
+ARCH_FLAGS	 = -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion
+DEVICE_FLAGS = -DSTM32F303xC -DSTM32F303
 
-lib:
-	$(MAKE) -C $(LIB_DIR)
+ifneq ($(FLASH_SIZE),)
+DEVICE_FLAGS := $(DEVICE_FLAGS) -DFLASH_SIZE=$(FLASH_SIZE)
+endif
 
-proj: 	$(PROJ_NAME).elf
+# SYSTEM_SRC = \
+# 		   $(BOARD_DIR)/dma.c \
+# 		   $(BOARD_DIR)/serial.c \
+# 		   $(BOARD_DIR)/system.c \
+# 		   $(CMSIS_SRC) \
+# 		   $(DEVICE_STDPERIPH_SRC)
 
-dirs:
-	mkdir -p deps objs
-	touch dirs
+SYSTEM_SRC = $(CMSIS_SRC) $(DEVICE_STDPERIPH_SRC)
 
-objs/%.o: %.S
-	$(CC) $(CFLAGS) -c -o $@ $<
 
-objs/%.o : %.c dirs
-	$(CC) $(CFLAGS) -c -o $@ $< -MMD -MF deps/$(*F).d
+# FC_COMMON_SRC = \
+#    	       $(BOARD_DIR)/exti.c \
+# 		   $(BOARD_DIR)/io.c \
 
-$(PROJ_NAME).elf: $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@ -L$(LIB_DIR) -lstm32f30x -L$(LDSCRIPT_INC) -Tstm32_flash_f303_256k.ld
-	$(OBJCOPY) -O ihex $(PROJ_NAME).elf $(PROJ_NAME).hex
-	$(OBJCOPY) -O binary $(PROJ_NAME).elf $(PROJ_NAME).bin
-	$(OBJDUMP) -St $(PROJ_NAME).elf >$(PROJ_NAME).lst
-	$(SIZE) $(PROJ_NAME).elf
+# VCP_SRC = \
+# 		   $(VCP_DIR)/hw_config.c \
+# 		   $(VCP_DIR)/stm32_it.c \
+# 		   $(VCP_DIR)/usb_desc.c \
+# 		   $(VCP_DIR)/usb_endp.c \
+# 		   $(VCP_DIR)/usb_istr.c \
+# 		   $(VCP_DIR)/usb_prop.c \
+# 		   $(VCP_DIR)/usb_pwr.c \
+# 		   $(BOARD_DIR)/serial_usb_vcp.c \
+# 		   $(BOARD_DIR)/usb_io.c
 
-program: all
-	openocd -f ../openocd.cfg -f $(OPENOCD_PROC_FILE) -c "stm_flash `pwd`/$(PROJ_NAME).bin"
+STM32F30x_COMMON_SRC = \
+		   $(BOARD_DIR)/startup_stm32f30x.S
 
-debug: program
-	$(GDB) -x extra/gdb_cmds $(PROJ_NAME).elf
+		   # $(BOARD_DIR)/system_stm32f30x_extras.c \
+		   # $(BOARD_DIR)/gpio_stm32f30x.c \
+		   # $(BOARD_DIR)/serial_uart.c \
+		   # $(BOARD_DIR)/serial_uart_stm32f30x.c \
+		   # $(BOARD_DIR)/system_stm32f30x.c
+
+# $(PROJECT)_CSRC = \
+# 		   timer.c \
+# 		   $(BOARD_DIR)/timer_stm32f30x.c \
+# 		   $(STM32F30x_COMMON_SRC) \
+# 		   $(SYSTEM_SRC) \
+# 		   $(VCP_SRC) \
+# 		   target.c
+
+$(PROJECT)_CSRC = \
+		   $(STM32F30x_COMMON_SRC) \
+		   $(SYSTEM_SRC) \
+
+VPATH		:= $(VPATH):$(STDPERIPH_DIR)/src
+
+###############################################################################
+# Things that might need changing to use different tools
+#
+
+# Find out if ccache is installed on the system
+CCACHE := ccache
+RESULT = $(shell (which $(CCACHE) > /dev/null 2>&1; echo $$?) )
+ifneq ($(RESULT),0)
+CCACHE :=
+endif
+
+# Tool names
+CC          := arm-none-eabi-gcc
+OBJCOPY     := arm-none-eabi-objcopy
+SIZE        := arm-none-eabi-size
+
+#
+# Tool options.
+#
+
+ifeq ($(DEBUG),GDB)
+OPTIMIZE	 = -O0
+LTO_FLAGS	 = $(OPTIMIZE)
+else
+OPTIMIZE	 = -Os
+LTO_FLAGS	 =  -flto -fuse-linker-plugin $(OPTIMIZE)
+endif
+
+DEBUG_FLAGS	 = -ggdb3 -DDEBUG
+
+CFLAGS		 = $(ARCH_FLAGS) \
+		   $(LTO_FLAGS) \
+		   $(WARN_FLAGS) \
+		   $(addprefix -I,$(INCLUDE_DIRS)) \
+		   $(DEBUG_FLAGS) \
+		   -Wall -Wpedantic -Wextra -Wunsafe-loop-optimizations -Wdouble-promotion -Wundef \
+		   -ffunction-sections \
+		   -fdata-sections \
+		   $(DEVICE_FLAGS) \
+		   -DUSE_STDPERIPH_DRIVER \
+		   -fverbose-asm -ffat-lto-objects \
+		   -save-temps=obj \
+		   -MMD -MP
+
+ASFLAGS		 = $(ARCH_FLAGS) \
+		   $(WARN_FLAGS) \
+		   -x assembler-with-cpp \
+		   $(addprefix -I,$(INCLUDE_DIRS)) \
+		  -MMD -MP
+
+LDFLAGS		 = -lm \
+		   -nostartfiles \
+		   --specs=nano.specs \
+		   -lc \
+		   -lnosys \
+		   $(ARCH_FLAGS) \
+		   $(LTO_FLAGS) \
+		   $(WARN_FLAGS) \
+		   $(DEBUG_FLAGS) \
+		   -static \
+		   -Wl,-gc-sections,-Map,$(TARGET_MAP) \
+		   -Wl,-L$(LINKER_DIR) \
+		   -Wl,--cref \
+		   -T$(LD_SCRIPT)
+
+# Things we will build
+
+TARGET_BIN	 = obj/$(PROJECT).bin
+TARGET_HEX	 = $(BIN_DIR)/$(PROJECT).hex
+TARGET_ELF	 = $(OBJECT_DIR)/$(PROJECT).elf
+TARGET_OBJS	 = $(addsuffix .o,$(addprefix $(OBJECT_DIR)/$(PROJECT)/,$(basename $($(PROJECT)_CSRC)))) \
+			   $(OBJECT_DIR)/$(PROJECT).o
+TARGET_MAP	 = $(OBJECT_DIR)/$(PROJECT).map
+
+
+## Default make goal:
+## hex         : Make filetype hex only
+.DEFAULT_GOAL := bin
+
+## Optional make goals:
+## all         : Make all filetypes, binary and hex
+all: hex bin
+
+## binary      : Make binary filetype
+## bin         : Alias of 'binary'
+## hex         : Make hex filetype
+bin:    $(TARGET_BIN)
+binary: $(TARGET_BIN)
+hex:    $(TARGET_HEX)
+
+# List of buildable ELF files and their object dependencies.
+
+$(TARGET_HEX): $(TARGET_ELF)
+	$(OBJCOPY) -O ihex --set-start 0x8000000 $< $@
+
+$(TARGET_BIN): $(TARGET_ELF)
+	$(OBJCOPY) -O binary $< $@
+
+$(TARGET_ELF):  $(TARGET_OBJS)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+# Compile
+$(OBJECT_DIR)/$(PROJECT)/%.o: %.c
+	@mkdir -p $(dir $@)
+	@echo %% $(notdir $<)
+	@$(CC) -c -o $@ $(CFLAGS) $<
+
+# Assemble
+$(OBJECT_DIR)/$(PROJECT)/%.o: %.s
+	@mkdir -p $(dir $@)
+	@echo %% $(notdir $<)
+	@$(CC) -c -o $@ $(ASFLAGS) $<
+
+$(OBJECT_DIR)/$(PROJECT)/%.o: %.S
+	@mkdir -p $(dir $@)
+	@echo %% $(notdir $<)
+	@$(CC) -c -o $@ $(ASFLAGS) $<
+
+$(OBJECT_DIR)/$(PROJECT).o: ./$(PROJECT).c
+	@$(CC) -c -o $(OBJECT_DIR)/$(PROJECT).o $(CFLAGS) ./$(PROJECT).c
 
 clean:
-	@find ./ -name '*~' | xargs rm -f	
-	@rm -f objs/*.o
-	@rm -f deps/*.d
-	@rm -f dirs
-	@rm -f $(PROJ_NAME).elf
-	@rm -f $(PROJ_NAME).hex
-	@rm -f $(PROJ_NAME).bin
-	@rm -f $(PROJ_NAME).map
-	@rm -f $(PROJ_NAME).lst
+	rm -rf obj
 
-reallyclean: clean
-	$(MAKE) -C $(LIB_DIR) clean
+flash_$(PROJECT): $(TARGET_BIN)
+	echo -n 'R' >$(SERIAL_DEVICE)
+	sleep 2
+	dfu-util -a 0 -s 0x08000000:leave -D $(TARGET_BIN)
+
+## flash       : flash firmware (.hex) onto flight controller
+flash: flash_$(PROJECT)
+
+unbrick_$(PROJECT): $(TARGET_BIN)
+	dfu-util -a 0 -s 0x08000000:leave -D $(TARGET_BIN)
+
+## unbrick     : unbrick flight controller
+unbrick: unbrick_$(PROJECT)
+
+# rebuild everything when makefile changes
+$(TARGET_OBJS) : Makefile
+
+listen:
+	miniterm.py $(SERIAL_DEVICE)
+
+print-%:
+	@echo '$*=$($*)'
