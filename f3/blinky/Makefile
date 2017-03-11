@@ -1,32 +1,30 @@
 # put your *.c source files here, make should handle the rest!
-SRCS = main.c errno.c stm32f3_discovery.c stm32f3_discovery_lsm303dlhc.c \
-      system_stm32f30x.c servo.c beep.c led.c button.c stm32f3_discovery_l3gd20.c \
-      gyro.c
+SRCS = blinky.c system_stm32f30x.c 
 
 # all the files will be generated with this name (main.elf, main.bin, main.hex, etc)
-PROJ_NAME=main
+PROJ_NAME=blinky
 
 # Location of the Libraries folder from the STM32F0xx Standard Peripheral Library
-STD_PERIPH_LIB=Libraries
+LIB_DIR=../lib/
 
 # Location of the linker scripts
-LDSCRIPT_INC=Device/ldscripts
+LDSCRIPT_INC=../
 
 # location of OpenOCD Board .cfg files (only used with 'make program')
 OPENOCD_BOARD_DIR=/home/matt/bin/openocd/share/openocd/scripts/board
 
 # Configuration (cfg) file containing programming directives for OpenOCD
-OPENOCD_PROC_FILE=extra/stm32f3-openocd.cfg
+OPENOCD_PROC_FILE=../stm32f3-openocd.cfg
 
 # that's it, no need to change anything below this line!
 
 ###################################################
 
-CC=arm-none-eabi-gcc
-GDB=arm-none-eabi-gdb
-OBJCOPY=arm-none-eabi-objcopy
-OBJDUMP=arm-none-eabi-objdump
-SIZE=arm-none-eabi-size
+CC		= arm-none-eabi-gcc
+GDB 	= arm-none-eabi-gdb
+OBJCOPY = arm-none-eabi-objcopy
+OBJDUMP = arm-none-eabi-objdump
+SIZE 	= arm-none-eabi-size
 
 CFLAGS  = -Wall -Wno-switch -g -std=c99 -Os  
 CFLAGS += -mlittle-endian -mcpu=cortex-m4  -march=armv7e-m -mthumb
@@ -37,17 +35,17 @@ LDFLAGS += -Wl,--gc-sections -Wl,-Map=$(PROJ_NAME).map
 
 ###################################################
 
-vpath %.a $(STD_PERIPH_LIB)
+vpath %.a $(LIB_DIR)
 
 ROOT=$(shell pwd)
 
-CFLAGS += -I inc 
-CFLAGS += -I $(STD_PERIPH_LIB) 
-CFLAGS += -I $(STD_PERIPH_LIB)/CMSIS/Device/ST/STM32F30x/Include
-CFLAGS += -I $(STD_PERIPH_LIB)/CMSIS/Include 
-CFLAGS += -I $(STD_PERIPH_LIB)/STM32F30x_StdPeriph_Driver/inc
-CFLAGS += -I $(STD_PERIPH_LIB)/STM32_USB-FS-Device_Driver/inc
-CFLAGS += -include $(STD_PERIPH_LIB)/stm32f30x_conf.h
+CFLAGS += -DSTM32F303xC
+#CFLAGS += -I $(LIB_DIR) 
+CFLAGS += -I $(LIB_DIR)/CMSIS/CM1/DeviceSupport/ST/STM32F30x
+CFLAGS += -I $(LIB_DIR)/CMSIS/CM1/CoreSupport
+CFLAGS += -I $(LIB_DIR)/STM32F30x_StdPeriph_Driver/inc
+CFLAGS += -I $(LIB_DIR)/STM32_USB-FS-Device_Driver/inc
+CFLAGS += -include $(LIB_DIR)/STM32F30x_StdPeriph_Driver/stm32f30x_conf.h
 
 STARTUP = Device/startup_stm32f30x.s # add startup file to build
 
@@ -67,19 +65,18 @@ all: lib proj
 -include $(DEPS)
 
 lib:
-	$(MAKE) -C $(STD_PERIPH_LIB)
+	$(MAKE) -C $(LIB_DIR)
 
 proj: 	$(PROJ_NAME).elf
 
 dirs:
 	mkdir -p deps objs
-	touch dirs
 
-objs/%.o : src/%.c dirs
+objs/%.o : %.c dirs
 	$(CC) $(CFLAGS) -c -o $@ $< -MMD -MF deps/$(*F).d
 
 $(PROJ_NAME).elf: $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@ $(STARTUP) -L$(STD_PERIPH_LIB) -lstm32f3 -L$(LDSCRIPT_INC) -Tstm32f3.ld
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@ $(STARTUP) -L$(LIB_DIR) -lstm32f3 -L$(LDSCRIPT_INC) -Tstm32f3.ld
 	$(OBJCOPY) -O ihex $(PROJ_NAME).elf $(PROJ_NAME).hex
 	$(OBJCOPY) -O binary $(PROJ_NAME).elf $(PROJ_NAME).bin
 	$(OBJDUMP) -St $(PROJ_NAME).elf >$(PROJ_NAME).lst
@@ -103,4 +100,4 @@ clean:
 	rm -f $(PROJ_NAME).lst
 
 reallyclean: clean
-	$(MAKE) -C $(STD_PERIPH_LIB) clean
+	$(MAKE) -C $(LIB_DIR) clean
