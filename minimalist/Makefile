@@ -3,7 +3,7 @@ CC      = $(TCPREFIX)gcc
 LD      = $(TCPREFIX)ld -v
 CP      = $(TCPREFIX)objcopy
 OD      = $(TCPREFIX)objdump
-GDBTUI  = $(TCPREFIX)gdbtui
+GDB  	= $(TCPREFIX)gdb
 
 STM32FLASH = ./stm32_flash.pl
 
@@ -35,6 +35,6 @@ main.o: main.c
 	$(CC) $(CFLAGS) main.c
 
 debug:
-	$(GDBTUI) -ex "target remote localhost:3333" \ 
+	$(GDB) -ex "target remote localhost:3333" \ 
 	-ex "set remote hardware-breakpoint-limit 6" \ 
 	-ex "set remote hardware-watchpoint-limit 4" main.elf
