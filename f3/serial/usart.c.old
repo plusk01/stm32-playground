@@ -25,7 +25,7 @@ void USART1_Init(void)
     GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
   
-    // GPIO_PinAFConfig(GPIOA, GPIO_PinSource8, GPIO_AF_7);
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource8, GPIO_AF_7);
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_7);
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_7);
   
