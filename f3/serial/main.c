@@ -30,12 +30,13 @@ int main(void)
  ***********************************************/
 void GPIOB_Init(void)
 {
-    /* Bit configuration structure for GPIOA PIN8 */
-    GPIO_InitTypeDef gpiob_init_struct = { GPIO_Pin_8, GPIO_Speed_50MHz, 
-                                           GPIO_Mode_Out_PP };
+    /* Bit configuration structure for GPIOB PIN8 */
+    GPIO_InitTypeDef gpiob_init_struct = { GPIO_Pin_8, GPIO_Mode_OUT, 
+                                          GPIO_Speed_50MHz, GPIO_OType_PP,
+                                          GPIO_PuPd_NOPULL };
                                              
     /* Enable PORT A clock */
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
 
     /* Initialize GPIOB: 50MHz, PIN8, Push-pull Output */
     GPIO_Init(GPIOA, &gpiob_init_struct);   
@@ -56,19 +57,25 @@ void USART1_Init(void)
     GPIO_InitTypeDef gpiob_init_struct;
      
     /* Enalbe clock for USART1, AFIO and GPIOA */
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_AFIO | 
-                           RCC_APB2Periph_GPIOA, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_AHBPeriph_GPIOA, ENABLE);
                             
     /* GPIOA PIN9 alternative function Tx */
     gpiob_init_struct.GPIO_Pin = GPIO_Pin_9;
     gpiob_init_struct.GPIO_Speed = GPIO_Speed_50MHz;
-    gpiob_init_struct.GPIO_Mode = GPIO_Mode_AF_PP;
+    gpiob_init_struct.GPIO_Mode = GPIO_Mode_AF;
+    gpiob_init_struct.GPIO_OType = GPIO_OType_PP;
+    gpiob_init_struct.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(GPIOA, &gpiob_init_struct);
+
     /* GPIOA PIN9 alternative function Rx */
     gpiob_init_struct.GPIO_Pin = GPIO_Pin_10;
     gpiob_init_struct.GPIO_Speed = GPIO_Speed_50MHz;
-    gpiob_init_struct.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    gpiob_init_struct.GPIO_Mode = GPIO_Mode_AF;
+    gpiob_init_struct.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(GPIOA, &gpiob_init_struct);
+
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_7);
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_7);
  
     /* Enable USART1 */
     USART_Cmd(USART1, ENABLE);  
