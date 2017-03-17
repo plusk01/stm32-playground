@@ -79,8 +79,7 @@ void USART1_Init(void)
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_7);
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_7);
  
-    /* Enable USART1 */
-    USART_Cmd(USART1, ENABLE);  
+
     /* Baud rate 9600, 8-bit data, One stop bit
      * No parity, Do both Rx and Tx, No HW flow control
      */
@@ -93,9 +92,14 @@ void USART1_Init(void)
     /* Configure USART1 */
     USART_Init(USART1, &usart1_init_struct);
     /* Enable RXNE interrupt */
+    USART_ClearITPendingBit(s->USARTx, USART_IT_RXNE);
     USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
     /* Enable USART1 global interrupt */
     NVIC_EnableIRQ(USART1_IRQn);
+
+
+    /* Enable USART1 */
+    USART_Cmd(USART1, ENABLE);
 }
 
 void USART2_Init(void) {
