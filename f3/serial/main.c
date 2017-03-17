@@ -17,14 +17,11 @@ int main(void)
     /* Initialize USART1 */
     USART1_Init();
 
-    USART2_Init();
-
     long i;
  
     while(1)
     {
         /* Do nothing, all happens in ISR */
-      USART_SendData(USART2, 't');
       USART_SendData(USART1, 't');
       led_toggle();
       for( i = 0; i < 500000; i++ );
@@ -83,7 +80,7 @@ void USART1_Init(void)
     /* Baud rate 9600, 8-bit data, One stop bit
      * No parity, Do both Rx and Tx, No HW flow control
      */
-    usart1_init_struct.USART_BaudRate = 9600;   
+    usart1_init_struct.USART_BaudRate = 115200;   
     usart1_init_struct.USART_WordLength = USART_WordLength_8b;  
     usart1_init_struct.USART_StopBits = USART_StopBits_1;   
     usart1_init_struct.USART_Parity = USART_Parity_No ;
@@ -92,7 +89,7 @@ void USART1_Init(void)
     /* Configure USART1 */
     USART_Init(USART1, &usart1_init_struct);
     /* Enable RXNE interrupt */
-    USART_ClearITPendingBit(s->USARTx, USART_IT_RXNE);
+    USART_ClearITPendingBit(USART1, USART_IT_RXNE);
     USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
     /* Enable USART1 global interrupt */
     NVIC_EnableIRQ(USART1_IRQn);
@@ -100,47 +97,6 @@ void USART1_Init(void)
 
     /* Enable USART1 */
     USART_Cmd(USART1, ENABLE);
-}
-
-void USART2_Init(void) {
-  /* USART configuration structure for USART2 */
-  USART_InitTypeDef usart2_init_struct;
-  /* Bit configuration structure for GPIOA PIN2 and PIN3 */
-  GPIO_InitTypeDef gpiob_init_struct;
-   
-  /* Enalbe clock for USART1, AFIO and GPIOA */
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
-  RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
-
-                          
-  /* GPIOA PIN9 alternative function Tx */
-  gpiob_init_struct.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3;
-  gpiob_init_struct.GPIO_Speed = GPIO_Speed_50MHz;
-  gpiob_init_struct.GPIO_Mode = GPIO_Mode_AF;
-  gpiob_init_struct.GPIO_OType = GPIO_OType_PP;
-  gpiob_init_struct.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_Init(GPIOA, &gpiob_init_struct);
-
-  GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_7);
-  GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_7);
-  
-  /* Enable USART2 */
-  USART_Cmd(USART2, ENABLE);  
-  /* Baud rate 9600, 8-bit data, One stop bit
-   * No parity, Do both Rx and Tx, No HW flow control
-   */
-  usart2_init_struct.USART_BaudRate = 9600;   
-  usart2_init_struct.USART_WordLength = USART_WordLength_8b;  
-  usart2_init_struct.USART_StopBits = USART_StopBits_1;   
-  usart2_init_struct.USART_Parity = USART_Parity_No ;
-  usart2_init_struct.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-  usart2_init_struct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-  /* Configure USART1 */
-  USART_Init(USART2, &usart2_init_struct);
-  /* Enable RXNE interrupt */
-  USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
-  /* Enable USART1 global interrupt */
-  NVIC_EnableIRQ(USART2_IRQn);
 }
  
 /*******************************************
@@ -190,31 +146,3 @@ void USART1_IRQHandler(void)
     /* ------------------------------------------------------------ */
     /* Other USART1 interrupts handler can go here ...             */
 }
-
-/**********************************************************
- * USART1 interrupt request handler: on reception of a 
- * character 't', toggle LED and transmit a character 'T'
- *********************************************************/
-void USART2_IRQHandler(void)
-{
-    /* RXNE handler */
-    if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET)
-    {
-        /* If received 't', toggle LED and transmit 'T' */
-        if((char)USART_ReceiveData(USART2) == 't')
-        {
-            led_toggle();
-            USART_SendData(USART2, 'T');
-            /* Wait until Tx data register is empty, not really 
-             * required for this example but put in here anyway.
-             */
-            /*
-            while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET)
-            {
-            }*/
-        }
-    }
-     
-    /* ------------------------------------------------------------ */
-    /* Other USART1 interrupts handler can go here ...             */
-}   
