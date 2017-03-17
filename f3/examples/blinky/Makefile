@@ -1,12 +1,12 @@
 # Change this to whatever project name you want
-PROJECT = serial
+PROJECT = blinky
 
 # Add your sources that you want compiled here
-PROJECT_SRCS = main.c
+PROJECT_SRCS = blinky.c
 
 ###############################################################################
 
-BOARD_DIR = ..
+BOARD_DIR = ../..
 
 # Debugger optons, must be empty or GDB
 DEBUG ?= GDB
@@ -101,7 +101,8 @@ SYSTEM_SRC = $(CMSIS_SRC) $(DEVICE_STDPERIPH_SRC)
 # 		   $(BOARD_DIR)/serial_usb_vcp.c \
 # 		   $(BOARD_DIR)/usb_io.c
 
-STM32F30x_COMMON_SRC = $(BOARD_DIR)/startup_stm32f30x.S
+STM32F30x_COMMON_SRC = \
+		   $(BOARD_DIR)/startup_stm32f30x.S
 
 		   # $(BOARD_DIR)/system_stm32f30x_extras.c \
 		   # $(BOARD_DIR)/gpio_stm32f30x.c \
@@ -213,8 +214,9 @@ binary: $(TARGET_BIN)
 hex:    $(TARGET_HEX)
 
 # List of buildable ELF files and their object dependencies.
+
 $(TARGET_HEX): $(TARGET_ELF)
-	$(OBJCOPY) -O ihex --set-start 0x08000000 $< $@
+	$(OBJCOPY) -O ihex --set-start 0x8000000 $< $@
 
 $(TARGET_BIN): $(TARGET_ELF)
 	$(OBJCOPY) -O binary $< $@
