@@ -1,5 +1,5 @@
 # Change this to whatever project name you want
-PROJECT = blinky
+PROJECT = serialvcp
 
 # Add your sources that you want compiled here
 PROJECT_SRCS = main.c ../system_stm32f30x.c
@@ -25,6 +25,10 @@ LIB_DIR      = $(BOARD_DIR)/lib
 CMSIS_DIR    = $(LIB_DIR)/CMSIS
 INCLUDE_DIRS = $(LIB_DIR) $(BOARD_DIR) $(SRC_DIR)
 LINKER_DIR   = $(BOARD_DIR)
+
+# USB Device Driver Sources
+USBFS_DIR	  = $(LIB_DIR)/STM32_USB-FS-Device_Driver
+USBFS_SRC = $(notdir $(wildcard $(USBFS_DIR)/src/*.c))
 
 # Standard Peripheral Driver Library Sources
 STDPERIPH_DIR	= $(LIB_DIR)/STM32F30x_StdPeriph_Driver
@@ -57,13 +61,14 @@ STM32F30x_COMMON_SRC = \
 
 $(PROJECT)_CSRC = $(PROJECT_SRCS) \
 		   $(STDPERIPH_SRC) \
+		   $(USBFS_SRC) \
 		   $(STM32F30x_COMMON_SRC)
 
 
 # Search path for sources
 VPATH       := $(BOARD_DIR):$(SRC_DIR)
 VPATH       := $(VPATH):$(CMSIS_DIR)/CM1/CoreSupport:$(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F30x
-VPATH       := $(VPATH):$(STDPERIPH_DIR)/src
+VPATH       := $(VPATH):$(STDPERIPH_DIR)/src:$(USBFS_DIR)/src
 
 ###############################################################################
 # Things that might need changing to use different tools

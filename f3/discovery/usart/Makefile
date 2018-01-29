@@ -1,5 +1,5 @@
 # Change this to whatever project name you want
-PROJECT = blinky
+PROJECT = serialvcp
 
 # Add your sources that you want compiled here
 PROJECT_SRCS = main.c ../system_stm32f30x.c

@@ -17,6 +17,12 @@ It seems that the flight controller community has not yet adopted hardware imple
 
 See the discussion on SO [CMSIS vs HAL vs Standard Peripherals Library](https://electronics.stackexchange.com/questions/224355/cmsis-vs-hal-vs-standard-peripherals-library).
 
+## Obtaining Official Libraries and Examples ##
+
+Finding the official STM32 CMSIS, StdPeriph, and examples can be a pain. However, if you search for *stm32 standard peripheral libraries*, you may be fortunate to find [this](http://www.st.com/en/embedded-software/stm32-standard-peripheral-libraries.html?querycriteria=productId=LN1939) page. Once you get here, you can find the latest library and example code by clicking the **STM32 Standard Peripheral Libraries Expansion** button and filtering for your specific STM32 family.
+
+Note that information can also be found by clicking one of the family buttons on the first page. However, the **F3** button seems to only have information for STM32F37xx/8xx. If you download an example through the **Expansion** button for the F3 (like the USB example, *STSW-STM32121*) you can find up to date CMSIS and StdPeriph libraries.
+
 ## Relevant Flight Controller Boards ##
 - [Naze32 / Flip32 (F103)](http://www.readytoflyquads.com/the-flip32)
 - [BeeCore F3](http://www.banggood.com/Beecore-F3_EVO_Brushed-ACRO-Flight-Control-Board-DSM2-For-Inductrix-Tiny-Whoop-Eachine-E010-p-1089021.html)
