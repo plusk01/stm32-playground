@@ -30,6 +30,10 @@ LINKER_DIR   = $(BOARD_DIR)
 USBFS_DIR	  = $(LIB_DIR)/STM32_USB-FS-Device_Driver
 USBFS_SRC = $(notdir $(wildcard $(USBFS_DIR)/src/*.c))
 
+# USB Virtual COM Port (VCP) Drivers
+USBVCP_DIR = $(LIB_DIR)/vcp
+USBVCP_SRC = $(notdir $(wildcard $(USBVCP_DIR)/*.c))
+
 # Standard Peripheral Driver Library Sources
 STDPERIPH_DIR	= $(LIB_DIR)/STM32F30x_StdPeriph_Driver
 STDPERIPH_SRC   = $(notdir $(wildcard $(STDPERIPH_DIR)/src/*.c))
@@ -42,6 +46,7 @@ STDPERIPH_FLAGS = -DUSE_STDPERIPH_DRIVER
 INCLUDE_DIRS := $(INCLUDE_DIRS) \
 		   $(STDPERIPH_DIR)/inc \
 		   $(USBFS_DIR)/inc \
+		   $(USBVCP_DIR) \
 		   $(CMSIS_DIR)/CM1/CoreSupport \
 		   $(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F30x
 
@@ -62,13 +67,14 @@ STM32F30x_COMMON_SRC = \
 $(PROJECT)_CSRC = $(PROJECT_SRCS) \
 		   $(STDPERIPH_SRC) \
 		   $(USBFS_SRC) \
+		   $(USBVCP_SRC) \
 		   $(STM32F30x_COMMON_SRC)
 
 
 # Search path for sources
 VPATH       := $(BOARD_DIR):$(SRC_DIR)
 VPATH       := $(VPATH):$(CMSIS_DIR)/CM1/CoreSupport:$(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F30x
-VPATH       := $(VPATH):$(STDPERIPH_DIR)/src:$(USBFS_DIR)/src
+VPATH       := $(VPATH):$(STDPERIPH_DIR)/src:$(USBFS_DIR)/src:$(USBVCP_DIR)
 
 ###############################################################################
 # Things that might need changing to use different tools
@@ -107,13 +113,14 @@ CFLAGS       = $(ARCH_FLAGS) \
 		   $(WARN_FLAGS) \
 		   $(addprefix -I,$(INCLUDE_DIRS)) \
 		   $(DEBUG_FLAGS) \
-		   -Wall -Wpedantic -Wextra -Wunsafe-loop-optimizations -Wdouble-promotion -Wundef \
+		   -Wall  -Wextra -Wunsafe-loop-optimizations -Wdouble-promotion -Wundef \
 		   -ffunction-sections \
 		   -fdata-sections \
 		   $(DEVICE_FLAGS) \
 		   -fverbose-asm -ffat-lto-objects \
 		   -save-temps=obj \
 		   -MMD -MP
+		   # -Wpedantic \
 
 ASFLAGS      = $(ARCH_FLAGS) \
 		   $(WARN_FLAGS) \
