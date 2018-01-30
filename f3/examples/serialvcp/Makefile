@@ -1,8 +1,8 @@
 # Change this to whatever project name you want
-PROJECT = serial
+PROJECT = serialvcp
 
 # Add your sources that you want compiled here
-PROJECT_SRCS = main.c
+PROJECT_SRCS = main.c ../system_stm32f30x.c
 
 ###############################################################################
 
@@ -11,117 +11,70 @@ BOARD_DIR = ../..
 # Debugger optons, must be empty or GDB
 DEBUG ?= GDB
 
-# Serial port/Device for flashing
-SERIAL_DEVICE	?= /dev/ttyACM0
-
-# Flash size (KB).  Some low-end chips actually have more flash than advertised, use this to override.
+# Flash size (KB). Some low-end chips actually have more flash than advertised, use this to override.
+# STM32F30xC has 256 (http://www.st.com/content/st_com/en/products/microcontrollers/stm32-32-bit-arm-cortex-mcus/stm32-mainstream-mcus/stm32f3-series/stm32f303.html?querycriteria=productId=LN1531)
 FLASH_SIZE ?= 256
 
 # Working directories
-ROOT		 = $(dir $(lastword $(MAKEFILE_LIST)))
-SRC_DIR		 = $(ROOT)
-OBJECT_DIR	 = $(ROOT)/obj
-BIN_DIR		 = $(ROOT)/obj
-LIB_DIR	 	 = $(BOARD_DIR)/lib
-CMSIS_DIR	 = $(LIB_DIR)/CMSIS
+ROOT         = $(dir $(lastword $(MAKEFILE_LIST)))
+SRC_DIR      = $(ROOT)
+BUILD        = $(ROOT)/build
+OBJECT_DIR   = $(BUILD)/obj
+BIN_DIR      = $(BUILD)/bin
+LIB_DIR      = $(BOARD_DIR)/lib
+CMSIS_DIR    = $(LIB_DIR)/CMSIS
 INCLUDE_DIRS = $(LIB_DIR) $(BOARD_DIR) $(SRC_DIR)
-LINKER_DIR	 = $(BOARD_DIR)
-
-# User Sources
-CSOURCES := $(shell find $(SRC_DIR) -name '*.c')
+LINKER_DIR   = $(BOARD_DIR)
 
 # USB Device Driver Sources
 USBFS_DIR	  = $(LIB_DIR)/STM32_USB-FS-Device_Driver
 USBFS_SRC = $(notdir $(wildcard $(USBFS_DIR)/src/*.c))
 
+# USB Virtual COM Port (VCP) Drivers
+USBVCP_DIR = $(LIB_DIR)/vcp
+USBVCP_SRC = $(notdir $(wildcard $(USBVCP_DIR)/*.c))
+
 # Standard Peripheral Driver Library Sources
 STDPERIPH_DIR	= $(LIB_DIR)/STM32F30x_StdPeriph_Driver
 STDPERIPH_SRC   = $(notdir $(wildcard $(STDPERIPH_DIR)/src/*.c))
-# EXCLUDES	    = stm32f30x_crc.c stm32f30x_can.c
 EXCLUDES	    = 
 STDPERIPH_SRC  := $(filter-out ${EXCLUDES}, $(STDPERIPH_SRC))
 
-# All device specific sources
-DEVICE_STDPERIPH_SRC := $(STDPERIPH_SRC) $(USBFS_SRC)
-
-
-# Search path for sources
-VPATH		:= $(BOARD_DIR):$(SRC_DIR)
-VPATH		:= $(VPATH):$(CMSIS_DIR)/CM1/CoreSupport:$(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F30x
-CMSIS_SRC	 = $(notdir $(wildcard $(CMSIS_DIR)/CM1/CoreSupport/*.c \
-			   $(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F30x/*.c))
+# If you want to use StdPeriph, you must define -DUSE_STDPERIPH_DRIVER:
+STDPERIPH_FLAGS = -DUSE_STDPERIPH_DRIVER
 
 INCLUDE_DIRS := $(INCLUDE_DIRS) \
 		   $(STDPERIPH_DIR)/inc \
 		   $(USBFS_DIR)/inc \
+		   $(USBVCP_DIR) \
 		   $(CMSIS_DIR)/CM1/CoreSupport \
 		   $(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F30x
 
-# # VCP support
-# VCP_DIR = $(BOARD_DIR)/vcp
+LD_SCRIPT    = $(LINKER_DIR)/stm32_flash_f303_$(FLASH_SIZE)k.ld
 
-# INCLUDE_DIRS := $(INCLUDE_DIRS) \
-# 		$(USBFS_DIR)/inc \
-# 		$(VCP_DIR) 
-
-VPATH := $(VPATH):$(USBFS_DIR)/src
-
-
-LD_SCRIPT	 = $(LINKER_DIR)/stm32_flash_f303_$(FLASH_SIZE)k.ld
-
-ARCH_FLAGS	 = -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion
+ARCH_FLAGS   = -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion
 DEVICE_FLAGS = -DSTM32F303xC -DSTM32F303
 
 ifneq ($(FLASH_SIZE),)
 DEVICE_FLAGS := $(DEVICE_FLAGS) -DFLASH_SIZE=$(FLASH_SIZE)
 endif
 
-# SYSTEM_SRC = \
-# 		   $(BOARD_DIR)/dma.c \
-# 		   $(BOARD_DIR)/serial.c \
-# 		   $(BOARD_DIR)/system.c \
-# 		   $(CMSIS_SRC) \
-# 		   $(DEVICE_STDPERIPH_SRC)
 
-SYSTEM_SRC = $(CMSIS_SRC) $(DEVICE_STDPERIPH_SRC)
+STM32F30x_COMMON_SRC = \
+		   $(BOARD_DIR)/startup_stm32f30x.S
 
 
-# FC_COMMON_SRC = \
-#    	       $(BOARD_DIR)/exti.c \
-# 		   $(BOARD_DIR)/io.c \
+$(PROJECT)_CSRC = $(PROJECT_SRCS) \
+		   $(STDPERIPH_SRC) \
+		   $(USBFS_SRC) \
+		   $(USBVCP_SRC) \
+		   $(STM32F30x_COMMON_SRC)
 
-# VCP_SRC = \
-# 		   $(VCP_DIR)/hw_config.c \
-# 		   $(VCP_DIR)/stm32_it.c \
-# 		   $(VCP_DIR)/usb_desc.c \
-# 		   $(VCP_DIR)/usb_endp.c \
-# 		   $(VCP_DIR)/usb_istr.c \
-# 		   $(VCP_DIR)/usb_prop.c \
-# 		   $(VCP_DIR)/usb_pwr.c \
-# 		   $(BOARD_DIR)/serial_usb_vcp.c \
-# 		   $(BOARD_DIR)/usb_io.c
 
-STM32F30x_COMMON_SRC = $(BOARD_DIR)/startup_stm32f30x.S
-
-		   # $(BOARD_DIR)/system_stm32f30x_extras.c \
-		   # $(BOARD_DIR)/gpio_stm32f30x.c \
-		   # $(BOARD_DIR)/serial_uart.c \
-		   # $(BOARD_DIR)/serial_uart_stm32f30x.c \
-		   # $(BOARD_DIR)/system_stm32f30x.c
-
-# $(PROJECT)_CSRC = \
-# 		   timer.c \
-# 		   $(BOARD_DIR)/timer_stm32f30x.c \
-# 		   $(STM32F30x_COMMON_SRC) \
-# 		   $(SYSTEM_SRC) \
-# 		   $(VCP_SRC) \
-# 		   target.c
-
-$(PROJECT)_CSRC = $(CSOURCES) \
-		   $(STM32F30x_COMMON_SRC) \
-		   $(SYSTEM_SRC) \
-
-VPATH		:= $(VPATH):$(STDPERIPH_DIR)/src
+# Search path for sources
+VPATH       := $(BOARD_DIR):$(SRC_DIR)
+VPATH       := $(VPATH):$(CMSIS_DIR)/CM1/CoreSupport:$(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F30x
+VPATH       := $(VPATH):$(STDPERIPH_DIR)/src:$(USBFS_DIR)/src:$(USBVCP_DIR)
 
 ###############################################################################
 # Things that might need changing to use different tools
@@ -144,36 +97,38 @@ SIZE        := arm-none-eabi-size
 #
 
 ifeq ($(DEBUG),GDB)
-OPTIMIZE	 = -O0
-LTO_FLAGS	 = $(OPTIMIZE)
+OPTIMIZE     = -O0
+LTO_FLAGS    = $(OPTIMIZE)
+DEBUG_FLAGS  = -ggdb3 -DDEBUG
 else
-OPTIMIZE	 = -Os
-LTO_FLAGS	 =  -flto -fuse-linker-plugin $(OPTIMIZE)
+OPTIMIZE     = -Os
+LTO_FLAGS    =  -flto -fuse-linker-plugin $(OPTIMIZE)
+DEBUG_FLAGS  =
 endif
 
-DEBUG_FLAGS	 = -ggdb3 -DDEBUG
 
-CFLAGS		 = $(ARCH_FLAGS) \
+CFLAGS       = $(ARCH_FLAGS) \
 		   $(LTO_FLAGS) \
+		   $(STDPERIPH_FLAGS) \
 		   $(WARN_FLAGS) \
 		   $(addprefix -I,$(INCLUDE_DIRS)) \
 		   $(DEBUG_FLAGS) \
-		   -Wall -Wpedantic -Wextra -Wunsafe-loop-optimizations -Wdouble-promotion -Wundef \
+		   -Wall  -Wextra -Wunsafe-loop-optimizations -Wdouble-promotion -Wundef \
 		   -ffunction-sections \
 		   -fdata-sections \
 		   $(DEVICE_FLAGS) \
-		   -DUSE_STDPERIPH_DRIVER \
 		   -fverbose-asm -ffat-lto-objects \
 		   -save-temps=obj \
 		   -MMD -MP
+		   # -Wpedantic \
 
-ASFLAGS		 = $(ARCH_FLAGS) \
+ASFLAGS      = $(ARCH_FLAGS) \
 		   $(WARN_FLAGS) \
 		   -x assembler-with-cpp \
 		   $(addprefix -I,$(INCLUDE_DIRS)) \
 		  -MMD -MP
 
-LDFLAGS		 = -lm \
+LDFLAGS      = -lm \
 		   -nostartfiles \
 		   --specs=nano.specs \
 		   -lc \
@@ -190,11 +145,12 @@ LDFLAGS		 = -lm \
 
 # Things we will build
 
-TARGET_BIN	 = obj/$(PROJECT).bin
-TARGET_HEX	 = $(BIN_DIR)/$(PROJECT).hex
-TARGET_ELF	 = $(OBJECT_DIR)/$(PROJECT).elf
-TARGET_OBJS	 = $(addsuffix .o,$(addprefix $(OBJECT_DIR)/$(PROJECT)/,$(basename $($(PROJECT)_CSRC))))
-TARGET_MAP	 = $(OBJECT_DIR)/$(PROJECT).map
+TARGET_BIN   = $(BIN_DIR)/$(PROJECT).bin
+TARGET_HEX   = $(BIN_DIR)/$(PROJECT).hex
+TARGET_ELF   = $(BIN_DIR)/$(PROJECT).elf
+
+TARGET_OBJS  = $(addsuffix .o,$(addprefix $(OBJECT_DIR)/$(PROJECT)/,$(basename $($(PROJECT)_CSRC))))
+TARGET_MAP   = $(OBJECT_DIR)/$(PROJECT).map
 
 
 ## Default make goal:
@@ -213,6 +169,7 @@ binary: $(TARGET_BIN)
 hex:    $(TARGET_HEX)
 
 # List of buildable ELF files and their object dependencies.
+
 $(TARGET_HEX): $(TARGET_ELF)
 	$(OBJCOPY) -O ihex --set-start 0x08000000 $< $@
 
@@ -220,6 +177,7 @@ $(TARGET_BIN): $(TARGET_ELF)
 	$(OBJCOPY) -O binary $< $@
 
 $(TARGET_ELF):  $(TARGET_OBJS)
+	@mkdir -p $(dir $@)
 	$(CC) -o $@ $^ $(LDFLAGS)
 	$(SIZE) $(TARGET_ELF)
 
@@ -240,31 +198,14 @@ $(OBJECT_DIR)/$(PROJECT)/%.o: %.S
 	@echo %% $(notdir $<)
 	@$(CC) -c -o $@ $(ASFLAGS) $<
 
-$(OBJECT_DIR)/$(PROJECT).o: ./$(PROJECT).c
-	@$(CC) -c -o $(OBJECT_DIR)/$(PROJECT).o $(CFLAGS) ./$(PROJECT).c
-
 clean:
-	rm -rf obj
+	rm -rf build
 
-flash_$(PROJECT): $(TARGET_BIN)
-	echo -n 'R' >$(SERIAL_DEVICE)
-	sleep 2
+flash: $(TARGET_BIN)
 	dfu-util -a 0 -s 0x08000000:leave -D $(TARGET_BIN)
-
-## flash       : flash firmware (.hex) onto flight controller
-flash: flash_$(PROJECT)
-
-unbrick_$(PROJECT): $(TARGET_BIN)
-	dfu-util -a 0 -s 0x08000000:leave -D $(TARGET_BIN)
-
-## unbrick     : unbrick flight controller
-unbrick: unbrick_$(PROJECT)
 
 # rebuild everything when makefile changes
 $(TARGET_OBJS) : Makefile
-
-listen:
-	miniterm.py $(SERIAL_DEVICE)
 
 print-%:
 	@echo '$*=$($*)'
