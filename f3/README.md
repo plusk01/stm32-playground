@@ -42,6 +42,10 @@ For simplicity, I like to create aliases that supply all the information needed.
 alias openocdf3discovery='openocd -f /usr/share/openocd/scripts/board/stm32f3discovery.cfg'
 ```
 
+*NOTE*: For the STM32F3 Discovery board, make sure that you are connected to the USB ST-LINK port and the CN4 jumpers are connected. Note that this port connects to a composite USB device, including a mass storage device.
+
+*Note*: In the `board/stm32f3discovery.cfg` file, you may need to change `interface/stlink-v2.cfg` to `interface/stlink-v2-1.cfg`.
+
 ## Resources ##
 
 - [STM32F3 Discovery Template](https://github.com/mblythe86/stm32f3-discovery-basic-template)
